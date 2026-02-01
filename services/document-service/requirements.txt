@@ -1,0 +1,15 @@
+# Document service specific dependencies
+# No ML dependencies - file processing only
+pypdf==3.17.4
+python-docx==0.8.11
+beautifulsoup4==4.12.2
+markdown==3.5.1
+clickhouse-driver==0.2.6
+
+# Testing dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0
+pytest-cov==4.1.0
+httpx==0.25.2
+aiofiles==23.2.1

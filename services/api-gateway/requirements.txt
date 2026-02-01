@@ -1,0 +1,3 @@
+# API Gateway specific dependencies only
+# All shared dependencies are in base image
+# No additional dependencies needed

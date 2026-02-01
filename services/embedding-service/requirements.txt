@@ -1,0 +1,3 @@
+# Embedding service specific dependencies only
+# ML dependencies are now in base image
+clickhouse-driver==0.2.6

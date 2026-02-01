@@ -1,0 +1,4 @@
+# Auth service specific dependencies only
+# All shared dependencies are in base image
+pydantic[email]==2.5.0
+arize-phoenix

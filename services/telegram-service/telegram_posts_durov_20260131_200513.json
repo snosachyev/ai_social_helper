@@ -1,0 +1,52 @@
+{
+  "parsed_at": "2026-01-31T20:05:13.335611",
+  "channel": "durov",
+  "total_posts": 3,
+  "posts": [
+    {
+      "message_id": 468,
+      "channel_id": 1006503122,
+      "channel_title": "Pavel Durov",
+      "channel_username": null,
+      "text": "This year, I wish you less — \n\nless information 📣\nless food 🍆\nless entertainment 📺 \nless communication 💬 \nless stimulation ⚡️\n\nYou already have too much of all that, and it stands in the way of your serenity 🧊, health 💪, sleep 💤 and creativity 🖼. \n\nMerry Christmas! 🎄",
+      "date": "2026-01-07T09:55:48+00:00",
+      "sender_id": -1001006503122,
+      "views": 2365549,
+      "forwards": 23628,
+      "reply_to_msg_id": null,
+      "media_type": null,
+      "media_url": null,
+      "sync_type": "realtime"
+    },
+    {
+      "message_id": 467,
+      "channel_id": 1006503122,
+      "channel_title": "Pavel Durov",
+      "channel_username": null,
+      "text": "🧐Despite some FUD, Telegram has no dependence on Russian capital. Our recent $1.7B bond offering included exactly zero Russian investors. Old bonds issued in 2021 have largely been repaid and pose no issue. 😌\n\nIn any case, bondholders are not shareholders and have no say over Telegram’s decisions. I am the sole shareholder. 😈",
+      "date": "2026-01-06T17:41:53+00:00",
+      "sender_id": -1001006503122,
+      "views": 2309135,
+      "forwards": 5953,
+      "reply_to_msg_id": null,
+      "media_type": null,
+      "media_url": null,
+      "sync_type": "realtime"
+    },
+    {
+      "message_id": 466,
+      "channel_id": 1006503122,
+      "channel_title": "Pavel Durov",
+      "channel_username": null,
+      "text": "Just sketched a logo for my sperm donorship program. Is ‘pd’ in a circle minimalist enough?",
+      "date": "2025-12-23T22:09:12+00:00",
+      "sender_id": -1001006503122,
+      "views": 3869598,
+      "forwards": 45405,
+      "reply_to_msg_id": 339,
+      "media_type": "photo",
+      "media_url": null,
+      "sync_type": "realtime"
+    }
+  ]
+}

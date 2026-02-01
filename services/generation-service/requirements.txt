@@ -1,0 +1,31 @@
+# Generation service specific dependencies only
+# ML dependencies are now in base image
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# ML/AI
+torch>=2.0.0
+transformers>=4.35.0
+accelerate>=0.24.0
+datasets>=2.14.0
+
+# OpenAI
+openai>=1.3.0
+tiktoken>=0.5.0
+
+# Database
+asyncpg==0.29.0
+sqlalchemy[asyncio]==2.0.23
+alembic==1.13.1
+redis[hiredis]==5.0.1
+clickhouse-driver==0.2.6
+gpustat==1.1.1
+nvitop==1.3.2
+
+# Shared
+httpx==0.25.2
+prometheus-client==0.19.0
+structlog==23.2.0
+psutil==5.9.62

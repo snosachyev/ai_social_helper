@@ -1,0 +1,6 @@
+# Vector service specific dependencies only
+# All shared dependencies are in base image
+chromadb==0.4.18
+faiss-cpu==1.7.4
+numpy==1.24.3
+clickhouse-driver==0.2.6
