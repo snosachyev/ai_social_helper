@@ -52,3 +52,15 @@ pytest-docker>=2.0.0
 # Reporting
 pytest-json-report>=1.5.0
 allure-pytest>=2.13.0
+
+# Contract testing
+jsonschema>=4.17.0
+pact-python>=2.0.0
+
+# Load testing
+locust>=2.15.0
+
+# Additional testing tools
+pytest-env>=1.0.0
+pytest-randomly>=3.12.0
+pytest-split>=0.8.0

@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  test-api-gateway:
+    image: python:3.9-slim
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./tests/mocks:/app
+    command: >
+      bash -c "
+        cd /app &&
+        pip install pyjwt &&
+        python api_gateway_mock.py
+      "
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test-embedding-service:
+    image: python:3.9-slim
+    ports:
+      - "8002:8002"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./tests/mocks:/app
+    command: >
+      bash -c "
+        cd /app &&
+        python embedding_service_mock.py
+      "
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test-auth-service:
+    image: python:3.9-slim
+    ports:
+      - "8007:8007"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./tests/mocks:/app
+    command: >
+      bash -c "
+        cd /app &&
+        pip install pyjwt &&
+        python auth_service_mock.py
+      "
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  test-network:
+    driver: bridge

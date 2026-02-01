@@ -1,0 +1,295 @@
+version: '3.8'
+
+services:
+  # Test databases
+  test-postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: test_rag
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+    ports:
+      - "5432:5432"
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d test_rag"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  test-redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - test_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  test-clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - test_clickhouse_data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_DB: test_rag
+      CLICKHOUSE_USER: test
+      CLICKHOUSE_PASSWORD: test
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Test Kafka
+  test-zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - test-network
+
+  test-kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - test-zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: test-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Test services (minimal versions for testing)
+  test-auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8007:8007"
+    environment:
+      - DATABASE_URL=postgresql://test:test@test-postgres:5432/test_rag
+      - REDIS_URL=redis://test-redis:6379
+      - JWT_SECRET=test_secret_key_for_testing_only
+      - LOG_LEVEL=DEBUG
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  test-document-service:
+    build:
+      context: ./services/document-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql://test:test@test-postgres:5432/test_rag
+      - REDIS_URL=redis://test-redis:6379
+      - LOG_LEVEL=DEBUG
+      - MAX_FILE_SIZE_MB=10
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  test-embedding-service:
+    build:
+      context: ./services/embedding-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - REDIS_URL=redis://test-redis:6379
+      - CLICKHOUSE_URL=http://test-clickhouse:8123/test_rag
+      - LOG_LEVEL=DEBUG
+      - EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+      - MAX_MEMORY_GB=2
+    depends_on:
+      test-redis:
+        condition: service_healthy
+      test-clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  test-vector-service:
+    build:
+      context: ./services/vector-service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - REDIS_URL=redis://test-redis:6379
+      - LOG_LEVEL=DEBUG
+      - VECTOR_DB_TYPE=chroma
+      - CHROMA_PERSIST_DIRECTORY=/tmp/chroma_test
+    depends_on:
+      test-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  test-retrieval-service:
+    build:
+      context: ./services/retrieval-service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      - EMBEDDING_SERVICE_URL=http://test-embedding-service:8002
+      - VECTOR_SERVICE_URL=http://test-vector-service:8003
+      - LOG_LEVEL=DEBUG
+    depends_on:
+      test-embedding-service:
+        condition: service_healthy
+      test-vector-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  test-generation-service:
+    build:
+      context: ./services/generation-service
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8005"
+    environment:
+      - MODEL_SERVICE_URL=http://test-model-service:8006
+      - LOG_LEVEL=DEBUG
+      - DEFAULT_MODEL=gpt-3.5-turbo
+    depends_on:
+      test-model-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  test-model-service:
+    build:
+      context: ./services/model-service
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8006"
+    environment:
+      - REDIS_URL=redis://test-redis:6379
+      - LOG_LEVEL=DEBUG
+      - HF_CACHE_DIR=/tmp/hf_cache_test
+      - MAX_MEMORY_GB=2
+    depends_on:
+      test-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  test-api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - AUTH_SERVICE_URL=http://test-auth-service:8007
+      - DOCUMENT_SERVICE_URL=http://test-document-service:8001
+      - EMBEDDING_SERVICE_URL=http://test-embedding-service:8002
+      - VECTOR_SERVICE_URL=http://test-vector-service:8003
+      - RETRIEVAL_SERVICE_URL=http://test-retrieval-service:8004
+      - GENERATION_SERVICE_URL=http://test-generation-service:8005
+      - MODEL_SERVICE_URL=http://test-model-service:8006
+      - REDIS_URL=redis://test-redis:6379
+      - LOG_LEVEL=DEBUG
+      - RATE_LIMIT_PER_MINUTE=100
+    depends_on:
+      test-auth-service:
+        condition: service_healthy
+      test-document-service:
+        condition: service_healthy
+      test-embedding-service:
+        condition: service_healthy
+      test-vector-service:
+        condition: service_healthy
+      test-retrieval-service:
+        condition: service_healthy
+      test-generation-service:
+        condition: service_healthy
+      test-model-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+volumes:
+  test_postgres_data:
+  test_redis_data:
+  test_clickhouse_data:
+
+networks:
+  test-network:
+    driver: bridge
