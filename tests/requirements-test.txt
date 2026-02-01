@@ -1,0 +1,54 @@
+# Test requirements for RAG system
+# Install with: pip install -r requirements-test.txt
+
+# Core testing framework
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+pytest-xdist>=3.0.0
+pytest-timeout>=2.1.0
+pytest-html>=3.1.0
+
+# FastAPI testing
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# HTTP testing
+httpx>=0.24.0
+requests-mock>=1.10.0
+
+# Async testing
+anyio>=3.6.0
+
+# Test utilities
+factory-boy>=3.2.0
+faker>=18.0.0
+freezegun>=1.2.0
+
+# Performance testing
+pytest-benchmark>=4.0.0
+memory-profiler>=0.60.0
+
+# Code quality
+flake8>=6.0.0
+black>=23.0.0
+isort>=5.12.0
+mypy>=1.0.0
+
+# Security testing
+bandit>=1.7.0
+
+# Documentation testing
+pytest-docs>=0.0.1
+
+# Database testing (if needed)
+pytest-postgresql>=5.0.0
+pytest-redis>=3.0.0
+
+# Docker testing (if needed)
+pytest-docker>=2.0.0
+
+# Reporting
+pytest-json-report>=1.5.0
+allure-pytest>=2.13.0
