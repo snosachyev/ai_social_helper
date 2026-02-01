@@ -1,0 +1,121 @@
+# RAG System Configuration
+
+service:
+  name: "rag-service"
+  version: "1.0.0"
+  debug: false
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4  # Increased for better concurrency
+  log_level: "INFO"
+  # Performance settings
+  request_timeout: 30
+  max_request_size: "10MB"
+  keep_alive_timeout: 65
+  graceful_shutdown_timeout: 30
+
+database:
+  host: "localhost"
+  port: 5432
+  database: "rag_db"
+  username: "rag_user"
+  password: "rag_password"
+  pool_size: 20  # Increased for better concurrency
+  max_overflow: 40
+  pool_timeout: 30
+  pool_recycle: 3600
+  # Performance optimizations
+  pool_pre_ping: true
+  echo: false
+
+redis:
+  host: "localhost"
+  port: 6379
+  database: 0
+  password: null
+  max_connections: 20  # Increased for better concurrency
+  socket_timeout: 5
+  socket_connect_timeout: 5
+  # Performance optimizations
+  connection_pool_kwargs:
+    retry_on_timeout: true
+    health_check_interval: 30
+
+clickhouse:
+  host: "localhost"
+  port: 9000
+  database: "rag_analytics"
+  username: "default"
+  password: null
+  compress: true
+  compress_block_size: 1048576
+
+vector_store:
+  store_type: "chroma"  # chroma, faiss
+  chroma_host: "localhost"
+  chroma_port: 8000
+  chroma_persist_directory: "./chroma_db"
+  faiss_index_path: "./faiss_index"
+  dimension: 384
+  metric: "cosine"
+
+model:
+  cache_dir: "./model_cache"
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  generation_model: "microsoft/DialoGPT-medium"
+  reranking_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  max_memory_gb: 16
+  device: "auto"  # auto, cpu, cuda
+  batch_size: 32
+  # Performance optimizations
+  quantization:
+    enabled: true
+    type: "bitsandbytes"  # bitsandbytes, gptq, awq, dynamic
+    bits: 4
+    compute_dtype: "float16"
+  model_sharing:
+    enabled: true
+    mode: "shared"  # exclusive, shared, pooled, dynamic
+    max_instances: 10
+    cache_policy: "lru"  # lru, lfu, fifo, ttl, adaptive
+    ttl_minutes: 60
+  batch_inference:
+    enabled: true
+    max_batch_size: 32
+    max_wait_time: 0.1
+    priority_levels: 3
+    adaptive_batching: true
+  concurrent_users:
+    max_concurrent: 100
+    queue_timeout: 30
+    priority_levels: 3
+  memory_optimization:
+    enable_kv_cache: true
+    max_kv_cache_size: 1000
+    enable_cpu_offload: true
+    enable_gradient_checkpointing: true
+    cleanup_interval_minutes: 5
+  caching:
+    enable_embeddings_cache: true
+    embeddings_cache_size: 10000
+    enable_results_cache: true
+    results_cache_ttl_minutes: 30
+
+monitoring:
+  enable_prometheus: true
+  prometheus_port: 9090
+  enable_tracing: true
+  tracing_backend: "phoenix"  # jaeger, phoenix
+  tracing_endpoint: "http://localhost:6006/v1/traces"
+  enable_metrics: true
+
+security:
+  secret_key: "your-secret-key-here-change-in-production"
+  algorithm: "HS256"
+  access_token_expire_minutes: 30
+  enable_rate_limiting: true
+  rate_limit_per_minute: 120  # Increased for better throughput
+  enable_content_filter: true
+  # Performance optimizations
+  enable_caching: true
+  cache_ttl_seconds: 300
