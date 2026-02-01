@@ -1,0 +1,88 @@
+# Override file for local development with pre-built images
+version: '3.8'
+
+services:
+  # Use pre-built images instead of building
+  api-gateway:
+    image: rag-base-lightweight:latest
+    build:
+      target: base
+    volumes:
+      - ./services/api-gateway:/app
+      - ./shared:/app/shared
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  auth-service:
+    image: rag-base-lightweight:latest
+    build:
+      target: base
+    volumes:
+      - ./services/auth-service:/app
+      - ./shared:/app/shared
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+
+  document-service:
+    image: rag-base-lightweight:latest
+    build:
+      target: base
+    volumes:
+      - ./services/document-service:/app
+      - ./shared:/app/shared
+    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+
+  embedding-service:
+    image: rag-base-ml-cpu:latest
+    build:
+      target: base
+    volumes:
+      - ./services/embedding-service:/app
+      - ./shared:/app/shared
+    command: uvicorn main:app --host 0.0.0.0 --port 8003 --reload
+
+  retrieval-service:
+    image: rag-base-lightweight:latest
+    build:
+      target: base
+    volumes:
+      - ./services/retrieval-service:/app
+      - ./shared:/app/shared
+    command: uvicorn main:app --host 0.0.0.0 --port 8004 --reload
+
+  generation-service:
+    image: rag-base-ml-cpu:latest
+    build:
+      target: base
+    volumes:
+      - ./services/generation-service:/app
+      - ./shared:/app/shared
+      - ~/.cache/huggingface:/app/hf_cache
+    command: uvicorn main:app --host 0.0.0.0 --port 8005 --reload
+
+  vector-service:
+    image: rag-base-lightweight:latest
+    build:
+      target: base
+    volumes:
+      - ./services/vector-service:/app
+      - ./shared:/app/shared
+    command: uvicorn main:app --host 0.0.0.0 --port 8007 --reload
+
+  telegram-service:
+    image: rag-base-lightweight:latest
+    build:
+      target: base
+    volumes:
+      - ./services/telegram-service:/app
+      - ./shared:/app/shared
+      - ./services/telegram-service/my_session.session:/app/my_session.session
+    command: uvicorn main:app --host 0.0.0.0 --port 8008 --reload
+
+  model-service:
+    image: rag-base-ml-cpu:latest
+    build:
+      target: base
+    volumes:
+      - ./services/model-service:/app
+      - ./shared:/app/shared
+      - ~/.cache/huggingface:/app/hf_cache
+    command: uvicorn main:app --host 0.0.0.0 --port 8006 --reload
