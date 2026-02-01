@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env.local
+.env.production
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# Cache and temporary files
+.cache/
+*.tmp
+*.temp
+
+# User uploads - НЕ ДОБАВЛЯТЬ В РЕПОЗИТОРИЙ!
+uploads/
+temp/
+tmp/
+
+# Model artifacts and caches
+model_cache/
+mlflow_artifacts/
+.hf_cache/
+.cache/
+
+# Vector databases
+chroma_db/
+faiss_index/
+
+# Session files
+*.session
+my_session.session
+string_session.session
+
+# Telegram posts
+telegram_posts_*.json
+telegram_posts_*.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Kubernetes secrets
+secrets/
+*.key
+*.crt
+*.pem
+
+# Airflow
+airflow/airflow.cfg
+airflow/logs/
+airflow/plugins/
