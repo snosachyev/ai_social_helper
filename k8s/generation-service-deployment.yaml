@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: generation-service
+  namespace: rag-system
+  labels:
+    app: generation-service
+    version: v1
+spec:
+  replicas: 2  # Can scale based on GPU availability
+  selector:
+    matchLabels:
+      app: generation-service
+  template:
+    metadata:
+      labels:
+        app: generation-service
+        version: v1
+    spec:
+      containers:
+      - name: generation-service
+        image: rag-system/generation-service:latest
+        ports:
+        - containerPort: 8005
+        env:
+        - name: POSTGRES_HOST
+          value: "postgres-service"
+        - name: REDIS_HOST
+          value: "redis-service"
+        - name: CLICKHOUSE_HOST
+          value: "clickhouse-service"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rag-secrets
+              key: openai-api-key
+        - name: HF_HOME
+          value: "/app/hf_cache"
+        - name: TRANSFORMERS_CACHE
+          value: "/app/hf_cache/hub"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "8Gi"
+            cpu: "2000m"
+            # Add GPU resources if available
+            # nvidia.com/gpu: 1
+        volumeMounts:
+        - name: hf-cache
+          mountPath: /app/hf_cache
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: hf-cache
+        persistentVolumeClaim:
+          claimName: hf-cache-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: generation-service
+  namespace: rag-system
+spec:
+  selector:
+    app: generation-service
+  ports:
+  - protocol: TCP
+    port: 8005
+    targetPort: 8005
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: generation-service-hpa
+  namespace: rag-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: generation-service
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

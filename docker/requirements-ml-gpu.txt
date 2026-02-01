@@ -1,0 +1,7 @@
+# Heavy ML dependencies with CUDA support
+torch==2.1.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+transformers==4.36.0
+sentence-transformers==2.2.2
+huggingface_hub==0.19.4
+accelerate==0.25.0
+numpy==1.24.3

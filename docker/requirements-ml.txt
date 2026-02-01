@@ -1,0 +1,7 @@
+# Heavy ML dependencies - shared across ML services
+torch==2.1.1
+transformers==4.36.0
+sentence-transformers==2.2.2
+huggingface_hub==0.19.4
+accelerate==0.25.0
+numpy==1.24.3
