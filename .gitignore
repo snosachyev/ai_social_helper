@@ -90,3 +90,6 @@ airflow/airflow.cfg
 airflow/logs/
 airflow/plugins/
 refine_telegram_integration_project_setup.md
+
+# Load testing optimization
+TEST_OPTIMISATION.md
