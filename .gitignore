@@ -93,3 +93,8 @@ refine_telegram_integration_project_setup.md
 
 # Load testing optimization
 TEST_OPTIMISATION.md
+
+# Temporary files from installations
+*.tar.gz
+*-archive-keyring.gpg
+*.backup
