@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-api-gateway
+  namespace: rag-system
+  labels:
+    app: rag-api-gateway
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: rag-api-gateway
+  template:
+    metadata:
+      labels:
+        app: rag-api-gateway
+    spec:
+      containers:
+      - name: api-gateway
+        image: python:3.11-slim
+        ports:
+        - containerPort: 8000
+        env:
+        - name: POSTGRES_HOST
+          value: "postgres-service"
+        - name: REDIS_HOST
+          value: "redis-service"
+        - name: SERVICE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        command:
+        - bash
+        - -c
+        - |
+          cd /app &&
+          pip install fastapi uvicorn httpx &&
+          python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000 --workers 8 --backlog 65535
+        volumeMounts:
+        - name: api-code
+          mountPath: /app
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: api-code
+        configMap:
+          name: api-gateway-code
+      securityContext:
+        sysctls:
+        - name: net.core.somaxconn
+          value: "65535"
+        - name: net.ipv4.tcp_max_syn_backlog
+          value: "65535"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-api-gateway-service
+  namespace: rag-system
+spec:
+  selector:
+    app: rag-api-gateway
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: LoadBalancer
+  sessionAffinity: None
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rag-api-gateway-hpa
+  namespace: rag-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rag-api-gateway
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
