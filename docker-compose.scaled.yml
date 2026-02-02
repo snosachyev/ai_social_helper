@@ -1,0 +1,177 @@
+services:
+  # Infrastructure
+  postgres:
+    image: postgres:15
+    container_name: rag-postgres-scaled
+    environment:
+      POSTGRES_DB: rag_db
+      POSTGRES_USER: rag_user
+      POSTGRES_PASSWORD: rag_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rag-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d rag_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis-scaled
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rag-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: rag-nginx-scaled
+    ports:
+      - "80:80"
+    volumes:
+      - ./infrastructure/nginx/nginx_scaled.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - rag-network
+    depends_on:
+      - api-gateway-1
+      - api-gateway-2
+      - api-gateway-3
+      - api-gateway-4
+    restart: unless-stopped
+
+  # Scaled API Gateways
+  api-gateway-1:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-1
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-1
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+  api-gateway-2:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-2
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-2
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+  api-gateway-3:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-3
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-3
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+  api-gateway-4:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-4
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-4
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  rag-network:
+    driver: bridge

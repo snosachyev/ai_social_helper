@@ -1,0 +1,187 @@
+services:
+  # Infrastructure
+  postgres:
+    image: postgres:15
+    container_name: rag-postgres-hp
+    environment:
+      POSTGRES_DB: rag_db
+      POSTGRES_USER: rag_user
+      POSTGRES_PASSWORD: rag_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rag-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d rag_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis-hp
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rag-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+
+  # High-Performance Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: rag-nginx-hp
+    ports:
+      - "80:80"
+    volumes:
+      - ./infrastructure/nginx/nginx_hp.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - rag-network
+    depends_on:
+      - api-gateway-go-1
+      - api-gateway-go-2
+      - api-gateway-go-3
+      - api-gateway-go-4
+      - api-gateway-go-5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # High-Performance Go API Gateways (5 instances)
+  api-gateway-go-1:
+    build:
+      context: ./services/api-gateway-go
+      dockerfile: Dockerfile
+    container_name: rag-api-gateway-go-1
+    environment:
+      - PORT=8000
+      - SERVICE_ID=gateway-go-1
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+
+  api-gateway-go-2:
+    build:
+      context: ./services/api-gateway-go
+      dockerfile: Dockerfile
+    container_name: rag-api-gateway-go-2
+    environment:
+      - PORT=8000
+      - SERVICE_ID=gateway-go-2
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+
+  api-gateway-go-3:
+    build:
+      context: ./services/api-gateway-go
+      dockerfile: Dockerfile
+    container_name: rag-api-gateway-go-3
+    environment:
+      - PORT=8000
+      - SERVICE_ID=gateway-go-3
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+
+  api-gateway-go-4:
+    build:
+      context: ./services/api-gateway-go
+      dockerfile: Dockerfile
+    container_name: rag-api-gateway-go-4
+    environment:
+      - PORT=8000
+      - SERVICE_ID=gateway-go-4
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+
+  api-gateway-go-5:
+    build:
+      context: ./services/api-gateway-go
+      dockerfile: Dockerfile
+    container_name: rag-api-gateway-go-5
+    environment:
+      - PORT=8000
+      - SERVICE_ID=gateway-go-5
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  rag-network:
+    driver: bridge

@@ -1,0 +1,75 @@
+services:
+  # Infrastructure
+  postgres:
+    image: postgres:15
+    container_name: rag-postgres-direct
+    environment:
+      POSTGRES_DB: rag_db
+      POSTGRES_USER: rag_user
+      POSTGRES_PASSWORD: rag_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rag-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d rag_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis-direct
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rag-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Direct Python API Gateway (без Nginx)
+  api-gateway-direct:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-direct
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-direct
+    volumes:
+      - ./services/api-gateway:/app
+    ports:
+      - "8000:8000"  # Прямой доступ
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000 --workers 8
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  rag-network:
+    driver: bridge

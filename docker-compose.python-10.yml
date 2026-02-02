@@ -1,0 +1,414 @@
+services:
+  # PostgreSQL with connection pooling via PgBouncer
+  postgres:
+    image: postgres:15
+    container_name: rag-postgres-py10
+    environment:
+      POSTGRES_DB: rag_db
+      POSTGRES_USER: rag_user
+      POSTGRES_PASSWORD: rag_password
+      POSTGRES_INITDB_ARGS: "--max-connections=200"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rag-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d rag_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+    command: >
+      postgres 
+      -c max_connections=200
+      -c shared_buffers=1GB
+      -c effective_cache_size=3GB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+
+  # PgBouncer for connection pooling
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    container_name: rag-pgbouncer-py10
+    environment:
+      DATABASES_HOST: postgres
+      DATABASES_PORT: 5432
+      DATABASES_USER: rag_user
+      DATABASES_PASSWORD: rag_password
+      DATABASES_DBNAME: rag_db
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 100
+      MIN_POOL_SIZE: 20
+      RESERVE_POOL_SIZE: 10
+      RESERVE_POOL_TIMEOUT: 5
+      SERVER_LIFETIME: 3600
+      SERVER_IDLE_TIMEOUT: 600
+    ports:
+      - "6432:6432"
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis-py10
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rag-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+
+  # Optimized Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: rag-nginx-py10
+    ports:
+      - "80:80"
+    volumes:
+      - ./infrastructure/nginx/nginx_optimized.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - rag-network
+    depends_on:
+      - api-gateway-py-1
+      - api-gateway-py-2
+      - api-gateway-py-3
+      - api-gateway-py-4
+      - api-gateway-py-5
+      - api-gateway-py-6
+      - api-gateway-py-7
+      - api-gateway-py-8
+      - api-gateway-py-9
+      - api-gateway-py-10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # 10 Python API Gateways
+  api-gateway-py-1:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-py-1
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-py-1
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  api-gateway-py-2:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-py-2
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-py-2
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  api-gateway-py-3:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-py-3
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-py-3
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  api-gateway-py-4:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-py-4
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-py-4
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  api-gateway-py-5:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-py-5
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-py-5
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  api-gateway-py-6:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-py-6
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-py-6
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  api-gateway-py-7:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-py-7
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-py-7
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  api-gateway-py-8:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-py-8
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-py-8
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  api-gateway-py-9:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-py-9
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-py-9
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  api-gateway-py-10:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-py-10
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-py-10
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  rag-network:
+    driver: bridge

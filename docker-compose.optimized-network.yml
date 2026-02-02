@@ -1,0 +1,155 @@
+services:
+  # Infrastructure
+  postgres:
+    image: postgres:15
+    container_name: rag-postgres-opt
+    environment:
+      POSTGRES_DB: rag_db
+      POSTGRES_USER: rag_user
+      POSTGRES_PASSWORD: rag_password
+    networks:
+      - rag-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d rag_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    sysctls:
+      - net.core.somaxconn=65535
+      - net.ipv4.tcp_max_syn_backlog=65535
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis-opt
+    networks:
+      - rag-network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    sysctls:
+      - net.core.somaxconn=65535
+
+  # Python API Gateway с оптимизированной сетью
+  api-gateway-1:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-opt-1
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-opt-1
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000 --workers 8 --backlog 65535
+      "
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    sysctls:
+      - net.core.somaxconn=65535
+      - net.ipv4.tcp_max_syn_backlog=65535
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+  api-gateway-2:
+    image: python:3.11-slim
+    container_name: rag-api-gateway-opt-2
+    environment:
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - SERVICE_ID=gateway-opt-2
+    volumes:
+      - ./services/api-gateway:/app
+    networks:
+      - rag-network
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        cd /app &&
+        pip install fastapi uvicorn httpx &&
+        python -m uvicorn main_simple:app --host 0.0.0.0 --port 8000 --workers 8 --backlog 65535
+      "
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    sysctls:
+      - net.core.somaxconn=65535
+      - net.ipv4.tcp_max_syn_backlog=65535
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+  # Оптимизированный Nginx
+  nginx:
+    image: nginx:alpine
+    container_name: rag-nginx-opt
+    ports:
+      - "80:80"
+    volumes:
+      - ./infrastructure/nginx/nginx_optimized_network.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - rag-network
+    depends_on:
+      - api-gateway-1
+      - api-gateway-2
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    sysctls:
+      - net.core.somaxconn=65535
+      - net.ipv4.tcp_max_syn_backlog=65535
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  rag-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: rag-br0
+      com.docker.network.driver.mtu: 1500
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
